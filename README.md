@@ -8,6 +8,12 @@ Trainings- und Testdaten.
 
 > Lern- und Forschungsprojekt. Keine Anlageberatung, keine echten Orders.
 
+![Kurschart mit automatisch erkannten Elliott-Wellen (nummerierte Wendepunkte) und Volumen](docs/bilder/kurschart.png)
+
+| Marktüberblick: Nachrichten-Sentiment | Vorhersage-Protokoll: Trefferquote gegen Zufalls-Basis |
+|---|---|
+| ![Marktüberblick](docs/bilder/marktueberblick.png) | ![Vorhersagen](docs/bilder/vorhersagen.png) |
+
 ## Was das Projekt zeigt
 
 - **Datenintegration:** acht Quellen mit unterschiedlichen Formaten (REST-APIs, RSS, SEC-EDGAR)
