@@ -1,0 +1,10 @@
+[server]
+address = "localhost"
+
+[theme]
+base = "dark"
+primaryColor = "#2E7DF7"
+backgroundColor = "#0B0E14"
+secondaryBackgroundColor = "#131722"
+textColor = "#E6E9F0"
+font = "sans serif"

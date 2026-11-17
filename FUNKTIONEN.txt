@@ -1,0 +1,82 @@
+FINANCE INTELLIGENCE — FUNKTIONSÜBERSICHT
+(Stand: 2026-08-04, stichpunktartig)
+
+=== CLI (main.py) ===
+- python main.py            : News + Kurse abrufen
+- python main.py news       : nur News
+- python main.py prices     : nur Kurse
+- python main.py insiders   : Congress-Trades + ARK-Trades/Holdings + Trump-Familie (DJT)
+- python main.py signals    : Elliott-Wellen-Scan der ganzen Watchlist, protokolliert Erwartungen
+- python main.py all        : News + Kurse + Insider + Signale komplett
+- python main.py replay     : Walk-forward-Rückrechnung für den Modellvergleich (~5 Min.)
+- python main.py init       : nur DB initialisieren
+- Watchlist-Sync läuft bei jedem Aufruf automatisch mit (add-only, löscht nie)
+
+=== Datenbeschaffung (Backend) ===
+- News-Fetcher: RSS-Feeds mehrerer Regionen, Duplikat-Check über URL, Sentiment-Analyse + Ticker-Erkennung pro Artikel
+- Kurs-Fetcher: Batch-Abruf (yfinance) für gesamte Watchlist, 400 Tage Historie
+- Watchlist-Updater: kuratiertes Universum (Top-10 Marktkap. + Top-10 volatil je Kontinent), nur Ergänzung, nie Löschung
+- Insider-Fetcher:
+  - Congress-Trades (Senat + Repräsentantenhaus) via Financial Modeling Prep API (Key nötig)
+  - ARK Invest Trades + Holdings-Snapshots via arkfunds.io (kein Key nötig)
+  - Trump-Familie: Form-4-Insidermeldungen von Trump Media & Technology Group (DJT) via SEC EDGAR (kein Key nötig, ~2 Handelstage Meldefrist)
+
+=== Dashboard (Streamlit, 10 Tabs) ===
+
+1. Kurschart + News
+   - Candlestick/Linien-Chart mit Volumen
+   - News-Marker (Dreieck, Sentiment-farbig, klickbar → Artikel)
+   - Insider-Trade-Marker (gelbes ℹ-Symbol am Handelstag, Hover zeigt Trader/Typ/Betrag)
+   - Elliott-Wellen-Overlay: abgeschlossene Muster + aktuell laufende Welle
+   - zeigt Struktur (5-Teiler/3-Teiler), bestätigte Pivots (0/1/2 etc.) im Chart eingezeichnet
+   - projiziert Folgewellen (z.B. Welle 4+5 nach Welle 3) mit Zielzonen, zunehmend transparent je weiter in der Zukunft
+   - Fundamentaldaten-Expander (Marktkap., KGV, Dividendenrendite, Analystenziel)
+   - Beobachtungspunkte: eigene Notizen mit Datum/Farbe am Chart ablegbar
+   - Zeitraum-Schnellauswahl (1T–3J oder benutzerdefiniert)
+
+2. News-Feed
+   - Filterbare Artikelliste je Ticker + Sentiment (positiv/neutral/negativ)
+
+3. Marktüberblick
+   - Markt-weite KPIs über alle geladenen News/Ticker
+
+4. Insider Trades
+   - Tabellen: Congress (Senat+Haus), ARK Invest (Käufe/Verkäufe + aktuelle Holdings je Fonds)
+   - "Trump-Kreis"-Bereich: Trump-nahe Congress-Mitglieder + aktuelles Kabinett/VP + Trump-Familie (DJT-Insider), klickbare Zeilen mit Inline-Chart
+   - Top-Performer-Ranking: Rendite seit Insider-Kauf bis heute
+   - Filter: Quelle, Kauf/Verkauf, Trader, Ticker
+
+5. Vergleich
+   - Relative Performance mehrerer Ticker im selben Chart (% seit Zeitraumbeginn)
+
+6. Backtest
+   - "Was wäre, hätte ich jeden Kauf eines Traders/Funds mitgemacht?" — Rendite vs. Benchmark (z.B. SPY)
+
+7. Wellen-Scanner
+   - Scannt gesamte Watchlist auf laufende Elliott-Wellen-Muster
+   - Zeigt Muster, Struktur (5-/3-Teiler), Richtung, Konfidenz, Zielzone, Folgewellen, letzten Pivot
+   - Einstellbar: Lookback, Zigzag-Empfindlichkeit, Mindest-Konfidenz
+
+8. Signale
+   - Direkte Einstiegs-Meldungen (Buy/Short) aus dem Wellen-Scan
+   - Signalstärke-Einordnung je Wellen-Zustand (z.B. Welle 3 = "starkes Signal")
+   - Abgleich mit Insider-Trades desselben Tickers (bestätigt/widerspricht Richtung)
+
+9. Vorhersagen
+   - Historie aller erkannten Wellenerwartungen inkl. späterem Abgleich (Ziel erreicht / invalidiert / abgelaufen)
+   - Trefferquote nach Wellen-Zustand und nach Konfidenzklasse (inkl. Anzahl Vorhersagen je Klasse)
+   - Trefferquote nach Kalenderwoche
+   - Aktuellste Erwartung je Ticker
+   - Erwartungsverlauf je Ticker (erste vs. aktuellste Einschätzung)
+
+9b. Modellvergleich (2026-10-01)
+   - Versionen der Signal-Regeln (v1 Original, v2 Long-only, v3 Evidenzbasiert = aktiv)
+   - Rückrechnung über ~10 Jahre (python main.py replay): Training 2016-2022 vs. Test ab 2023
+   - Kennzahlen je Version: Trefferquote, Zufalls-Basis, Edge, Ø Ergebnis/Signal, 20T-Überrendite
+   - Edge je Jahr als Chart, Live-Vorhersagen vor/nach Umstellung, Papier-Trades je Version
+
+10. Papier-Trades
+    - Virtuelle 100€-Order bei jedem erkannten Einstiegssignal
+    - Automatisches Risikomanagement: Stop-Loss -5%, nachgezogen auf +1% sobald +2% im Plus
+    - Alternativer Exit bei Erreichen der Elliott-Zielzone
+    - Statistik: Trefferquote, realisiertes P&L gesamt/je Trade

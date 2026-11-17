@@ -1,0 +1,34 @@
+ERGEBNIS "Mehr Spanne je Trade": Mindest-Kursziel (Idee 1) + Trailing Stop (Idee 4) — Stand 2026-10-19
+=====================================================================================================
+
+Aufbau: src/analytics/margin_study.py, Befehl: python main.py margin
+  - Signale v4, Einstieg Folgetag-Eröffnung, max. 120 Tage, Neobroker-Kosten, 1.000 € je Trade
+  - Idee 1: nur Signale mit Abstand zur Zielzone >= 0/3/5/8/12/15/20 %
+  - Idee 4: Trailing Stop 5/8/10/15/20 % unter Höchstkurs seit Einstieg, 3 Varianten
+           (ab Einstieg · ab Einstieg + SL Pivot · SL Pivot, ab Zielzone Trailing)
+  - Kennzahl: Vorsprung je Kapitaltag ×365 (Rendite minus Universum gleich lang)
+
+Vorab festgelegte Regel: Auswahl nur Watchlist bis 2022; bestanden, wenn auf Test-
+Universum ab 2023 Vorsprung p.a. UND netto/Trade besser als heute UND Mehrheit der Jahre.
+
+Auswahl Training: Mindest-Kursziel 3 % (−8,1 % vs −8,2 % p.a., praktisch gleich);
+Trailing: KEINE Variante besser als heute (alle −10,6 bis −16,6 % vs −8,2 %).
+
+TEST-Universum ab 2023 (Auszug)        Trades  Gew.   Ø Tage  netto/Trade  Vorspr./Tr.  Vorspr. p.a.  schlechtester
+  heute (Zielzone/Pivot)                 6506   70 %     18      +0,98 %      +0,24 %      +5,0 %        −29 %
+  Idee 1: Kursziel >= 3 % (gewählt)      3158   61 %     21      +0,77 %      −0,06 %      −1,0 %        −29 %
+  Idee 1: Kursziel >= 12 %                186   45 %     49      +1,85 %      +0,46 %      +3,4 %        −22 %
+  Trailing 10 % ab Einstieg              6482   43 %     52      +2,37 %      −0,14 %      −0,9 %        −36 %
+  Trailing 20 % ab Einstieg              6095   53 %     97      +5,27 %      +0,35 %      +1,3 %        −37 %
+  SL Pivot, ab Zielzone Trailing 20 %    6315   36 %     65      +3,61 %      +0,28 %      +1,5 %        −36 %
+Entscheidung: Idee 1, Idee 4 und 1+4 NICHT bestanden (0/4 Jahre besser).
+
+Deutung:
+  - Trailing Stops erhöhen netto je Trade deutlich (bis +5,3 %), aber nur weil länger
+    gehalten wird (bis 97 Tage). Vorsprung je Kapitaltag fällt von +5,0 % auf max. +1,5 %
+    (Test) bzw. ist im Training durchweg schlechter. Mehr Spanne = mehr Marktbeta.
+  - Größeres Kursziel: Trefferquote sinkt stärker, als der Weg länger wird; im Training
+    wird brutto je Trade mit steigender Schwelle kleiner. >= 12 % sieht im Test gut aus,
+    aber nur 186 Trades und im Training schlechter -> Zufall nicht auszuschließen.
+  - Die heutige Regel (Zielzone/Pivot) ist je eingesetztem Kapitaltag die beste Variante.
+Einschränkungen wie bisher: Survivorship Bias, Test 2023–2026 starker Aufwärtsmarkt.

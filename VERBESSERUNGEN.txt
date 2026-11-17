@@ -1,0 +1,213 @@
+FINANCE INTELLIGENCE — VERBESSERUNGSVORSCHLÄGE
+================================================
+Stand: 2026-07-09
+
+Bereits umgesetzt:
+  [x] Ticker-Matching-Bug (Substring -> Wortgrenzen-Regex + Sperrliste
+      für Wörter wie target/total/shell/gold/oil/fed/bp)
+      -> src/processors/text_processor.py
+  [x] Multi-Ticker-Vergleichschart (Tab "Vergleich", normalisierte
+      %-Performance, feste Farbreihenfolge)
+      -> dashboard/app.py
+  [x] Batch-Preisabruf (yfinance) -> src/fetchers/stock_fetcher.py
+  [x] Fundamentaldaten im Dashboard sichtbar (get_ticker_info) -> dashboard/app.py
+  [x] "Deutsche telekom"-Key war case-sensitiv und wurde nie gematcht
+      (Vergleich lief gegen kleingeschriebenen Text) -> Key auf
+      "deutsche telekom" korrigiert. Regressionstest:
+      tests/test_text_processor.py::test_deutsche_telekom_matches_regardless_of_casing
+  [x] Doppelte Dict-Keys "amd" und "samsung" in COMPANY_TICKER entfernt
+      (überschrieben sich stillschweigend, gleicher Wert, aber Copy-Paste-Rest).
+      Regressionstest: tests/test_text_processor.py::test_no_duplicate_keys_in_company_ticker_source
+  [x] store_prices() von zeilenweisem INSERT (iterrows-Schleife) auf
+      executemany() umgestellt -> ein DB-Roundtrip statt einem pro Zeile.
+      Insert-Zähler läuft jetzt über conn.total_changes-Delta, da
+      cursor.rowcount nach executemany() nicht pro Statement verlässlich ist.
+      -> src/database/db.py. Tests: tests/test_db.py
+  [x] pytest-Testsuite angelegt (tests/), pytest als Dev-Dependency in
+      requirements.txt ergänzt.
+  [x] Insider-Signal-Backtest: "Was wäre passiert, hätte ich jedes Mal
+      mitgekauft, wenn [Trader X] gekauft hat?" -> src/analytics/backtest.py
+      (backtest_trader, list_backtestable_traders), neuer Dashboard-Tab
+      "🔁 Backtest" (dashboard/app.py). Nur Buy-Trades, Buy-and-Hold bis zum
+      aktuellsten verfügbaren Kurs, Vergleich gegen Benchmark (Standard SPY)
+      über denselben Zeitraum. Trades ohne auswertbare Kursdaten werden mit
+      Grund aufgelistet statt stillschweigend zu verschwinden. Tests:
+      tests/test_backtest.py (10 Fälle, u.a. fehlende Kursdaten, nur ein
+      Kurspunkt nach Einstieg, Benchmark-Alignment).
+      Bewusst nicht enthalten: Sell-Trades als Exit-Signal,
+      Positionsgrößen-Gewichtung, Transaktionskosten — das würde in Richtung
+      Portfolio-Tracking-Modul gehen (siehe unten).
+  [x] Testsuite um init_db() (Tabellen, Idempotenz, Default-Sources,
+      Migration bestehender watchlist-Tabelle um Spalte "continent") und
+      insider_fetcher._norm_amount / _norm_trade_type (Wertebereiche,
+      Groß-/Kleinschreibung, leere/unbekannte Eingaben) erweitert.
+      -> tests/test_db.py, tests/test_insider_fetcher.py
+
+  [x] (2026-10-01) Split-/Bereinigungs-Bug in der Kurshistorie: store_prices()
+      nutzte INSERT OR IGNORE -> rückwirkend von Yahoo bereinigte Kurse
+      (Split, Dividende) und Intraday-Stände des laufenden Tages blieben auf
+      dem Wert des ersten Abrufs eingefroren. Folge: Phantom-Crashs bei APH
+      und MNST (2:1-Split als -50%) sowie 119 Ticker mit einzelnen
+      falschen Tagen. Jetzt: Upsert für Aktien (overwrite=True), Abgleich
+      frisch vs. gespeichert und bei Abweichung kompletter Neuabruf
+      -> src/database/price_history.py, main.fetch_all_prices().
+      Vorhersagen werden auf die neue Kursbasis umgerechnet; solche, deren
+      Lookback einen Phantom-Split enthielt, gelöscht (4 Stück).
+      Backup vorher: data/backup/finance_intel_2026-10-01_vor_split_fix.db
+  [x] (2026-10-01) Kurshistorie auf 10 Jahre erweitert (HISTORY_DAYS=3650,
+      einmalig je Ticker, Tabelle price_history_meta) — Grundlage für
+      belastbare Rückwärts-Tests über mehrere Marktphasen.
+  [x] (2026-10-01) Ehrliche Vorhersage-Statistik: pro Vorhersage
+      Zufalls-Basis (baseline_prob) und "startete schon in der Zielzone"
+      (in_zone_at_creation). Trefferquote ohne In-Zone-Fälle und ohne
+      Zustände ohne Zielzone, dazu Zufalls-Basis + Edge im Tab "Vorhersagen".
+      Protokolliert wird nur noch mit Standard-Parametern (5%, 365 Tage),
+      nicht mehr aus dem Chart-Tab. Offene Vorhersagen werden bei
+      main.py signals/all automatisch abgeglichen.
+  [x] (2026-10-01) Short-Signale abgeschaltet (Signale-Tab, Papier-Trades):
+      Walk-forward über 10 Jahre / ~58.000 Signale: nach bearishen Signalen
+      lag die 20-Tage-Rendite im Schnitt 1,4 pp auf der falschen Seite,
+      in 9 von 10 Jahren. Werden weiter protokolliert (Statistik).
+
+  [x] (2026-10-01) Modellversionen + Vergleich: src/analytics/model_versions.py
+      (v1 Original, v2 Long-only, v3 Evidenzbasiert = aktiv), Walk-forward-
+      Rückrechnung src/analytics/model_replay.py (python main.py replay ->
+      Tabelle replay_signals), Merkmale je Vorhersage (features_json,
+      src/analytics/signal_features.py), Dashboard-Tab "Modellvergleich"
+      (Rückrechnung Training/Test, Edge je Jahr, Live vorher/nachher,
+      Papier-Trades je Version), Versionswahl im Tab "Papier-Trades".
+      Regeln für v3 nur auf 2016-2022 ausgewählt. Test 2023-2026:
+      Edge v1 +1,8 pp -> v3 +5,1 pp, Ø Ergebnis/Signal +0,23% -> +0,67%.
+      Geprüft und verworfen (Training): Confidence-Filter (kein Effekt),
+      Shorts nur im Bärenmarkt (weiter negativ), Filter Aktie/Markt über
+      SMA200 und 6-Monats-Momentum (keine stabile Verbesserung).
+  [x] (2026-10-02) v4 Bärenmarkt-Gewichtung = aktiv: Signale wie v3, aber
+      200 € statt 100 € Einsatz, wenn der S&P 500 unter seiner SMA200 liegt.
+      Geprüft auf einem unberührten Test-Universum (452 S&P-500-/Europa-
+      Aktien, nicht auf der Watchlist: src/analytics/test_universe.py,
+      Tabelle test_prices, python main.py testdata / replay test).
+      Entscheidungsregel vorab festgelegt (model_versions.v4_decision):
+      Edge positiv in 4/4 Bärenphasen (+6 bis +18 pp), Ergebnis je Euro
+      +0,83 % (v4) vs +0,75 % (v3), Gewinn bei 100 €/Signal +17.390 € vs
+      +12.503 €. Auch v3 selbst hält auf dem Test-Universum (Edge +6,3 pp).
+      Dashboard: Universum-Wahl + Abschnitt "v4 gegen v3" im Modellvergleich,
+      Bärenmarkt-Hinweis im Signale-Tab, Papier-Trades mit gewichtetem
+      Einsatz und P&L je Euro. Wöchentlicher Replay per Cron (So 10:00).
+      Einschränkungen: nur 4 Bärenphasen (dieselben Zeiträume wie auf der
+      Watchlist, zeitlich also nicht unabhängig); auch Test-Aktien sind
+      heutige Indexmitglieder (Survivorship Bias).
+      Vollständiger Bericht: ERGEBNISSE/2026-10-02_v4_test_universum.txt
+
+OFFEN aus derselben Analyse (2026-10-01):
+  - [x] python main.py replay wöchentlich per Cron (seit 2026-10-02).
+  - [x] (2026-11-02) Verpasste Cron-Läufe (Laptop aus) werden nachgeholt:
+        Benutzer-anacron (~/.anacron/anacrontab, stündlich + @reboot aus
+        crontab) für Tageslauf ab 8 Uhr und wöchentlichen Replay; 15-Uhr-Lauf
+        bleibt Cron. Alle Läufe über cron_job.sh (flock gegen Parallelläufe).
+  - [x] (2026-11-02) Plausibilitätsprüfung der Kurse
+        (src/database/price_plausibility.py, greift in store_prices): Sprung
+        > Faktor 4 ggü. letztem gültigen Kurs wird verworfen, außer das neue
+        Niveau hält 3 Tage mit Volumen. Ursache: Yahoo liefert unter M-USD,
+        USDG-USD, GRAM-USD, MNT-USD einen ANDEREN Coin als CoinGecko.
+        Bereinigung: python main.py clean (186 Kurse, 6 Vorhersagen gelöscht;
+        Backup data/backup/finance_intel_2026-11-02_vor_clean.db).
+  - Folge davon offen: M-USD/USDG-USD bekommen über Yahoo keine gültigen
+    Kurse mehr (Stand bleibt 28.09.) -> tägliche Krypto-Updates über
+    CoinGecko statt Yahoo holen (oder Yahoo-Ticker je Coin abgleichen).
+  - [x] Long-Signale im Bärenmarkt gewichten -> v4 (2026-10-02, s.o.).
+  - Insider-Käufe als eigenes Signal testen.
+  - [x] (2026-10-19) Mehr Spanne je Trade: Mindest-Kursziel und Trailing Stop
+        getestet (python main.py margin, src/analytics/margin_study.py) -> beide
+        NICHT bestanden; mehr netto/Trade nur durch längeres Halten (Marktbeta),
+        Vorsprung je Kapitaltag schlechter als heute.
+        Bericht: ERGEBNISSE/2026-10-19_spanne_kursziel_trailing.txt
+  - (2026-10-19) Wellensignal + Insider-Kauf als Kombi-Filter: nur Long-
+    Signale handeln, wenn im selben Ticker kurz vorher Insider gekauft haben
+    (Ziel: mehr Vorsprung je Trade). Bewertung wie immer am Vorsprung ggü.
+    Universum gleich lang + je Kapitaltag, Auswahl bis 2022, Test ab 2023.
+  - (2026-10-19) Relative Stärke als Filter: nur Signale bei Aktien, die in
+    den letzten 3–6 Monaten besser liefen als der Index (Momentum bestätigt
+    die Welle). Achtung: v3-Auswahl 2016–2022 fand Momentum-Filter ohne
+    stabile Verbesserung — erneut nur mit Vorsprung je Kapitaltag prüfen.
+  - Survivorship-Bias: Watchlist = heutige Überlebende, schönt Long-Tests.
+  - News: einzelne Artikel mit Datum in der Zukunft (z.B. Livestream-
+    Ankündigungen), zu wenige Ticker-Treffer für ein Sentiment-Feature.
+
+1. INFRASTRUKTUR / ABSICHERUNG
+--------------------------------
+- Kein Git-Repo vorhanden. Empfehlung: git init + .gitignore für
+  venv/, data/*.db, .insider_config.json, __pycache__/.
+  Ohne Versionskontrolle keine Historie, kein Rollback bei Fehlern.
+
+- FMP-API-Key wird im Klartext in .insider_config.json gespeichert
+  (src/fetchers/insider_fetcher.py:60-69). Für rein lokale Nutzung
+  okay, aber nicht committen / nicht syncen (siehe .gitignore oben).
+
+- [x] Testsuite deckte bisher nur Ticker-Extraction und store_prices() ab.
+  DB-Migrationen (init_db) und Insider-Trade-Normalisierung (_norm_amount,
+  _norm_trade_type) sind jetzt ebenfalls getestet.
+
+- [x] FMP-Key lag mit Standard-Dateirechten auf der Platte
+  (.insider_config.json). save_fmp_key() setzt jetzt os.chmod(0o600, ...)
+  nach dem Schreiben -> src/fetchers/insider_fetcher.py.
+  Test: tests/test_insider_fetcher.py::test_save_fmp_key_restricts_file_permissions_to_owner_only
+
+
+2. PERFORMANCE
+--------------------------------
+- Congress-Trades werden seriell geladen (insider_fetcher.py:
+  fetch_senate_trades + fetch_house_trades, je bis zu 5 Seiten,
+  10 HTTP-Calls nacheinander). Ließe sich parallelisieren
+  (concurrent.futures), analog zum Batch-Kursabruf.
+
+
+3. DATENQUALITÄT
+--------------------------------
+- Sentiment-Analyse (TextBlob-Polarity) ist generisch, nicht
+  finanzspezifisch trainiert. Wörter wie "cuts" oder "beat" werden
+  oft falsch bewertet. Alternative: FinBERT oder ein günstiger
+  LLM-Call für Sentiment + Summary statt LSA-Summarizer + TextBlob.
+
+- Nur 10 RSS-Quellen, jeweils nur die letzten 30 Einträge pro Lauf.
+  Vergleichbare Tools aggregieren deutlich breiter (mehr Quellen,
+  SEC-Filings, Earnings-Call-Transkripte).
+
+- Ticker-übergreifend keine Währungsumrechnung — Watchlist deckt
+  USD/EUR/GBP/AUD/JPY/KRW etc. ab. Für Einzelticker-Ansicht egal,
+  für jede Form von Portfolio-Aggregation aber notwendig.
+
+
+4. FEHLENDE FEATURE-KATEGORIEN (im Vergleich zu anderen Finanz-Apps)
+---------------------------------------------------------------------
+a) Portfolio-Tracking (Vorbild: Portfolio Performance, Parqet, Getquin)
+   - Aktuell nur Marktbeobachtung, kein Tracking von eigenem Kapital:
+     keine eigenen Positionen (Kaufkurs, Stückzahl, Datum), kein P&L,
+     kein Dividendenkalender, keine Asset-Allocation-Übersicht, kein
+     Cash-Anteil. Größte mögliche Erweiterung, da Preis-Infrastruktur
+     schon vorhanden ist.
+
+b) Screener / Alerts (Vorbild: Finviz, TradingView Alerts)
+   - Keine Kursschwellen-Alerts, keine Benachrichtigung bei
+     News-Sentiment-Spikes, ungewöhnlichem Volumen oder neuen
+     Insider-Käufen bei beobachteten Tickern. Marktüberblick zeigt
+     nur Aggregate, nichts Proaktives (E-Mail/Push).
+
+c) Fundamentaldaten / Bewertung (Vorbild: Simply Wall St, TipRanks)
+   [x] erledigt — get_ticker_info() (KGV, Marktkap., Analysten-Kursziel)
+       wird im Chart-Tab angezeigt (dashboard/app.py).
+
+d) Backtesting des eigenen Insider-Signals
+   [x] erledigt — src/analytics/backtest.py + Dashboard-Tab "🔁 Backtest".
+
+e) Earnings- / Makro-Kalender
+   - Keine Termine für Earnings-Calls, Dividendentermine,
+     Fed-Meetings. Würde die News-Marker im Chart sinnvoll ergänzen,
+     da Kursausschläge oft an Earnings-Terminen hängen, nicht am
+     Datum der News-Meldung.
+
+
+PRIORISIERUNG (Einschätzung)
+--------------------------------
+1. Git-Repo aufsetzen                         — 5 Minuten, reine Absicherung (Nutzer richtet das selbst ein)
+2. Alerts/Benachrichtigungen                   — mittlerer Aufwand, hoher Nutzwert
+3. Portfolio-Tracking-Modul                    — größter Schritt, verändert den Charakter der App

@@ -1,0 +1,313 @@
+ELLIOTT-WELLEN-MODUL — AUSFÜHRLICHE ERKLÄRUNG
+================================================
+Stand: 2026-08-09
+Code: src/analytics/elliott_wave.py, src/analytics/wave_tracker.py
+
+Dieses Dokument erklärt im Detail, wie das Modul Fibonacci-Verhältnisse
+anwendet, worauf man beim Lesen der Signale achten muss, wann laut Code der
+"beste" Einstiegspunkt ist, und wo die Schwächen liegen bzw. wie man den
+Algorithmus gezielt verbessern könnte.
+
+
+1. GRUNDPRINZIP
+----------------
+Kein ML, keine Kursprognose per Modell. Das Modul zeichnet regelbasiert
+das, was ein Chartist von Hand mit einem Zigzag-Werkzeug einzeichnen würde:
+
+  Kursdaten (High/Low pro Tag)
+        -> Zigzag-Pivots (signifikante Umkehrpunkte)
+        -> Prüfung gegen die drei harten Elliott-Regeln
+        -> Fibonacci-Konformität der Wellenverhältnisse = Konfidenz
+        -> Zielzone für die noch laufende/nächste Welle
+
+Alles, was danach als "Erwartung" ausgegeben wird, ist eine Extrapolation
+auf Basis von Fibonacci-Standardverhältnissen — keine Garantie, sondern eine
+statistische Analogie zu "so verhalten sich Wellen historisch häufig".
+
+
+2. WO GENAU FIBONACCI EINGESETZT WIRD
+---------------------------------------
+Zwei Sets von Verhältnissen (elliott_wave.py, Zeile 18-19):
+
+  FIB_RETRACE = (0.236, 0.382, 0.5, 0.618, 0.786)
+    -> für Wellen, die eine VORHERIGE Bewegung zurückkorrigieren
+       (Welle 2, Welle 4, Welle B)
+
+  FIB_EXTEND  = (0.618, 1.0, 1.272, 1.618, 2.618)
+    -> für Wellen, die in TREND-Richtung über die Referenzwelle
+       hinauslaufen (Welle 3, Welle 5, Welle C)
+
+Zwei unterschiedliche Verwendungen dieser Zahlen:
+
+  a) KONFIDENZ-MESSUNG (_fib_closeness, Zeile 73)
+     Für eine bereits ABGESCHLOSSENE Welle wird geprüft, wie nah ihr
+     tatsächliches Verhältnis (z.B. Welle-2-Retracement / Welle-1-Länge)
+     am nächstgelegenen Fibonacci-Level liegt. 1.0 = exakter Treffer,
+     linear abfallend, 0.0 ab 25% Abweichung vom nächsten Level.
+     Die Konfidenz eines Musters ist der Durchschnitt über alle
+     geprüften Verhältnisse (z.B. bei einem Impuls: w2_retrace,
+     w4_retrace, w3_ext, w5_ext -> 4 Werte gemittelt).
+
+  b) ZIELZONEN-PROJEKTION (_leg_zone, Zeile 179, plus die vier
+     Zustands-Blöcke in analyze_current_wave)
+     Für eine NOCH NICHT abgeschlossene Welle wird eine Bandbreite
+     projiziert: [start_price + ratio_lo * ref_len, start_price +
+     ratio_hi * ref_len]. Es wird also nicht ein einzelner Fibonacci-
+     Punkt als Ziel genommen, sondern die Spanne zwischen zwei
+     benachbarten Fib-Levels als Zielzone. Beispiel Welle 3
+     ("Welle 3 in Bildung", Zeile 378-379):
+
+        t1 = Welle-2-Ende + 1.0   * Welle-1-Länge
+        t2 = Welle-2-Ende + 2.618 * Welle-1-Länge
+        Zielzone = [min(t1,t2), max(t1,t2)]
+
+     Diese Zone ist bewusst breit (1.0 bis 2.618 = fast das 2,6-fache
+     Spektrum) — das Modul committet sich nicht auf einen exakten
+     Kurswert, sondern auf einen plausiblen Korridor.
+
+  c) VERKETTUNG (projected_waves)
+     Über das aktuell erkannte Wellenbein hinaus projiziert das Modul
+     noch 1-3 weitere, NOCH SPEKULATIVERE Wellenbeine. Jedes weitere
+     Bein nimmt als Startpunkt nicht die Zonengrenze, sondern die
+     ZONENMITTE der vorherigen Projektion (_leg_zone gibt lo, hi UND
+     mid zurück, mid wird an die nächste _leg_zone-Berechnung
+     weitergereicht). Das heißt: Fehler/Unsicherheit der ersten
+     Projektion pflanzt sich in die zweite und dritte fort — je weiter
+     in der Kette, desto größer die tatsächliche (im Code nicht
+     quantifizierte) Unsicherheit. Das ist im Code auch so benannt,
+     aber NICHT numerisch in der confidence abgebildet: eine "Welle 5"-
+     Zielzone hat exakt dieselbe confidence wie die daraus abgeleitete
+     "Welle A"-Folgezone, obwohl Letztere deutlich spekulativer ist.
+
+
+3. WELCHE REFERENZLÄNGE FÜR WELCHE WELLE GILT (wichtig für Interpretation)
+----------------------------------------------------------------------------
+Die Projektionsformel ist immer: neuer Punkt = Ankerpunkt + Verhältnis *
+Referenzlänge. Die Referenzlänge unterscheidet sich je nach Zustand — das
+ist der Teil, den man beim Lesen der Werte im Kopf haben muss:
+
+  Zustand              | projizierte Welle | Referenzlänge
+  ---------------------|--------------------|-----------------------------
+  wave3_forming        | Welle 3            | Länge Welle 1
+                        | Welle 4 (Folge)    | (projizierte) Länge Welle 3
+                        | Welle 5 (Folge)    | Länge Welle 1 (NICHT Welle 3!)
+  wave5_forming         | Welle 5            | Länge Welle 1 (Symmetrie-Annahme)
+                        | Welle A (Folge)    | gesamte Impulslänge (0->5)
+                        | Welle B (Folge)    | projizierte Länge Welle A
+                        | Welle C (Folge)    | projizierte Länge Welle A
+  correction_forming    | Welle A            | gesamte vorherige Impulslänge
+                        | Welle B (Folge)    | projizierte Länge Welle A
+                        | Welle C (Folge)    | projizierte Länge Welle A
+  new_impulse_possible  | (keine Zielzone)   | -
+
+Wichtig: Welle 5 wird NICHT aus Welle 3 abgeleitet, sondern bewusst wieder
+aus Welle 1 (klassische Elliott-Heuristik "Welle 5 tendiert zur Länge von
+Welle 1, wenn Welle 3 bereits stark extended war"). Das ist eine
+Vereinfachung — die Literatur kennt auch Fälle, in denen Welle 5 sich an
+Welle 1+3 oder an eigenen Fibonacci-Extensions von Welle 4 orientiert;
+das bildet der Code nicht ab.
+
+Welle 4 wird zusätzlich hart an das Kursgebiet von Welle 1 geclippt
+(Zeile 392-395) — das ist keine Fibonacci-Regel, sondern die Umsetzung der
+harten Elliott-Regel "Welle 4 überschneidet nie Welle 1", direkt in der
+Projektion statt nur in der Validierung.
+
+
+4. WORAUF MAN BEIM LESEN DER SIGNALE ACHTEN MUSS
+----------------------------------------------------
+a) Konfidenz ist KEINE Trefferwahrscheinlichkeit.
+   Sie misst nur "wie sauber folgen die BEREITS ABGESCHLOSSENEN Wellen
+   Fibonacci-Standardverhältnissen" — nicht "wie wahrscheinlich ist es,
+   dass die Zielzone erreicht wird". Ein Muster mit confidence 0.9 kann
+   trotzdem invalidiert werden, wenn der Kurs den stützenden Pivot
+   durchbricht.
+
+b) Die Wellenzählung ist ab einem beliebigen Startpunkt IMMER subjektiv
+   (das steht auch im Docstring, Zeile 198-202). Das Modul zählt deshalb
+   bewusst nur die letzten paar Pivots, nicht die gesamte Historie — bei
+   einem anderen Lookback-Fenster kann exakt derselbe Kursverlauf zu einer
+   anderen Wellenzählung und damit anderen Zielzone führen. Zwei
+   unterschiedliche Lookback-Einstellungen für denselben Ticker am selben
+   Tag können sich WIDERSPRECHEN, ohne dass eine "falsch" ist.
+
+c) Ein Muster wird nur erkannt, wenn der Kurs bereits BESTÄTIGEND
+   ausgebrochen ist (siehe Abschnitt 5). D.h. das Signal kommt strukturell
+   IMMER erst NACH einem Teil der Bewegung, nie am exakten Wendepunkt.
+   Wer auf das Signal wartet, verpasst zwangsläufig die ersten
+   15-20% der jeweiligen Bewegung (die Schwellenwerte, die die
+   Bestätigung auslösen).
+
+d) Empfindlichkeit (threshold_pct) verändert nicht nur "wie viele Muster",
+   sondern auch WELCHE Wellenzählung entsteht — bei 3% Empfindlichkeit
+   sieht das Modul evtl. schon eine "Welle 5", während bei 8% derselbe
+   Kursabschnitt noch als "Welle 3" gilt, weil kleinere Zwischenpivots bei
+   8% gar nicht erst als eigene Welle zählen. Es gibt keinen "richtigen"
+   Wert — je nach Handelshorizont (Daytrading vs. Swing vs. Langfrist)
+   ist ein anderer Wert sinnvoll.
+
+e) target_low/target_high bei "new_impulse_possible" ist None — dieser
+   Zustand ist reine Richtungsaussage ohne Kursziel, bewusst so belassen,
+   weil noch keine Welle-1-Referenzlänge existiert, auf der eine
+   Projektion aufbauen könnte.
+
+f) Die harten Regeln (Welle 2 nicht unter Start Welle 1, Welle 3 nicht
+   kürzeste, Welle 4 ohne Überschneidung mit Welle 1) schließen ungültige
+   Zählungen aus, garantieren aber nicht, dass die verbleibende, gültige
+   Zählung auch die vom Markt "gemeinte" ist. Es kann in double-/triple-
+   Zigzag-Korrekturen oder Flats zu Fehlinterpretation kommen, da der Code
+   nur EINFACHE ABC-Zigzags kennt (siehe Abschnitt 6).
+
+
+5. WANN IST LAUT CODE DER "BESTE" EINSTIEGSPUNKT?
+----------------------------------------------------
+Das Modul selbst trifft keine "jetzt kaufen"-Aussage im Sinne einer
+Kaufempfehlung. Zwei Stellen im Code kommen dem am nächsten:
+
+  A) Der Moment, in dem ein Zustand NEU erkannt wird (state wechselt von
+     "kein Muster" zu z.B. "wave3_forming"). Das ist der früheste Punkt,
+     an dem das Modul über die Struktur überhaupt eine Aussage trifft —
+     und zugleich der Punkt mit dem besten Chance/Risiko-Verhältnis,
+     WEIL die Bestätigungsschwelle (Ausbruch über den vorherigen
+     Wellen-Pivot) gerade erst erreicht wurde, der Stop (siehe unten)
+     also noch nah am Kurs liegt.
+
+  B) In der Papier-Trade-Simulation (wave_tracker.py) wird genau das
+     operationalisiert: Einstieg = price_at_prediction (Kurs zum
+     Zeitpunkt der Ersterkennung), nicht irgendein späterer Kurs.
+     Dazu automatisches Risikomanagement:
+       - Stop-Loss bei Einstieg: -5% vom Einstandskurs
+         (STOP_INITIAL_PCT, Zeile 201)
+       - sobald der Kurs +2% im Gewinn ist, wird der Stop EINMALIG auf
+         +1% Gewinn nachgezogen (STOP_TRAIL_TRIGGER_PCT /
+         STOP_TRAIL_LOCK_PCT, Zeile 202-203) und bleibt danach FEST
+         (kein fortlaufendes Trailing)
+       - Exit auch bei Erreichen der Zielzone (erster Kontakt, kein
+         Halten auf Overshoot — siehe target_overshoot() für die
+         Analyse, ob Halten historisch besser gewesen wäre)
+       - nach 120 Tagen (MAX_HORIZON_DAYS) ohne Auslösung: "expired"
+
+  Praktisch heißt das laut Code-Logik: der beste Einstieg ist der erste
+  bestätigte Strukturbruch (Ausbruch über den letzten relevanten Pivot),
+  NICHT der optische Tiefpunkt/Hochpunkt selbst (den erkennt das Modul
+  aus Prinzip nicht in Echtzeit, weil ein Pivot per Definition erst nach
+  einer Umkehr von threshold_pct % feststeht — es gibt also immer eine
+  Erkennungsverzögerung).
+
+  Die Auswertungen legen zusätzlich zwei Dinge nahe, die man beim
+  Ableiten einer eigenen Einstiegsregel einbeziehen sollte:
+    - accuracy_stats()/weekly_accuracy(): Trefferquote schwankt über die
+      Zeit — bei Live-Nutzung lohnt ein Blick auf die aktuelle Quote,
+      nicht nur auf eine einzelne Vorhersage isoliert.
+    - overshoot_coverage()/overshoot_hold_stats(): zeigt, wie oft der
+      Kurs nach Zielzonen-Erreichen noch weiterläuft. Ist share_hold_
+      better hoch, spricht das dafür, die Zielzone eher als Teil-Exit
+      als als Full-Exit zu behandeln.
+
+
+6. SCHWÄCHEN / VERBESSERUNGSIDEEN
+------------------------------------
+Sortiert von "einfach umsetzbar" zu "größerer Umbau".
+
+  1) Konfidenz der VERKETTETEN Folge-Wellen (projected_waves) ist nicht
+     von der Basis-Konfidenz abgekoppelt. Einfache Verbesserung: pro
+     Kettenglied einen Abschlagsfaktor einführen (analog zum bereits
+     vorhandenen *0.7-Abschlag bei "new_impulse_possible", Zeile 436),
+     z.B. Welle A/B/C nach einem Impuls jeweils mit 0.8^n multiplizieren,
+     damit weiter entfernte Projektionen sichtbar unsicherer erscheinen.
+
+  2) Kein Volumen-Kriterium. Klassische Elliott-Wellen-Theorie erwartet
+     typischerweise steigendes Volumen in Welle 3 und abnehmendes in
+     Welle 5 ("divergence" als Frühwarnsignal für das nahende Wellenende).
+     stock_prices enthält (falls von yfinance geliefert) Volumen — das
+     wird aktuell komplett ignoriert. Einbau würde die Konfidenzformel um
+     eine Volume-Komponente erweitern.
+
+  3) Nur einfache Zigzag-Korrektur (ABC) wird erkannt. Elliott kennt auch
+     Flats (A-B-C mit B nahe/über Start A), Triangles (A-B-C-D-E) und
+     komplexe/kombinierte Korrekturen (W-X-Y). _check_corrective() lehnt
+     alles außer klassischem Zigzag hart ab (Zeile 138-141) — in
+     Seitwärtsphasen (häufig!) liefert das Modul dadurch oft gar kein
+     Muster statt eines (weniger sicheren) Flat/Triangle-Treffers. Ein
+     zusätzlicher, separat gekennzeichneter Erkennungspfad für Flats
+     (B retraced 90-105% von A statt <100%) wäre der nächstliegende
+     Ausbau.
+
+  4) Diagonal-Varianten (leading/ending diagonal, Welle 1 oder 5 als
+     Keil mit sich überschneidenden Wellen 1/4) werden von den harten
+     Regeln in _check_impulse() explizit ausgeschlossen (Regel 3). Das
+     ist absichtlich (Diagonals sind eine Sonderform), aber bedeutet:
+     in Keilformationen (die oft am Ende großer Trends auftreten und
+     daher wichtige Signale wären) erkennt das Modul strukturell nichts.
+
+  5) Kein Zeit-Fibonacci (nur Preis-Fibonacci). Klassische Technik nutzt
+     zusätzlich Fibonacci-Zeitzonen/-Verhältnisse, um WANN eine Welle
+     enden könnte, nicht nur WO. Aktuell fließt die Dauer einer Welle
+     überhaupt nicht in confidence oder Zielzone ein — zwei Wellen mit
+     identischem Preisverhältnis aber sehr unterschiedlicher Dauer (3
+     Tage vs. 3 Monate) werden gleich bewertet.
+
+  6) Kein Higher-Timeframe-Abgleich. Das Modul analysiert jeden Ticker
+     nur auf EINEM Zeitraster (Tagesdaten, ein Lookback-Fenster). Ein
+     verbreiteter Elliott-Praxis-Tipp ist "Wellenzählung auf Wochenbasis
+     muss die Tagesbasis bestätigen" (Multi-Timeframe-Konfluenz). Ließe
+     sich umsetzen, indem zusätzlich Wochenkerzen (resample) durch
+     dieselbe detect/analyze-Funktion laufen und die Konfidenz erhöht
+     wird, wenn beide Zeitebenen dieselbe Richtung anzeigen.
+
+  7) evaluate_open_predictions() prüft "hit" nur als reine Zonenberührung
+     (Low<=target_high UND High>=target_low), unabhängig davon, wie lange
+     der Kurs danach in der Zone bleibt. Ein kurzer Intraday-Spike, der
+     die Zone nur streift und sofort umkehrt, zählt schon als "hit" -
+     genauso wie ein sauberer Ausbruch. target_overshoot() analysiert das
+     zwar nachträglich, aber die "hit"-Klassifikation selbst könnte um
+     ein Bestätigungskriterium ergänzt werden (z.B. Schlusskurs, nicht
+     nur Intraday-High/Low).
+
+  8) threshold_pct (Zigzag-Empfindlichkeit) ist über alle Ticker/Zeiträume
+     hinweg ein fixer Prozentwert (Default 5%). Für einen volatilen
+     Nebenwert ist 5% ein Rauschfilter, für einen ruhigen Bluechip evtl.
+     schon eine "echte" Bewegung. Eine ATR-basierte (Average True Range)
+     statt prozentualer Schwelle würde die Empfindlichkeit automatisch an
+     die tickerspezifische Volatilität anpassen, statt einen globalen
+     Wert für alle zu verwenden.
+
+  9) Kein Backtest DES Elliott-Moduls selbst über verschiedene
+     threshold_pct/min_confidence-Kombinationen hinweg (der vorhandene
+     src/analytics/backtest.py ist für Insider-Signale, nicht für
+     Wellen-Signale). Ein systematisches Sweep über threshold_pct
+     (z.B. 2/5/8/12%) und min_confidence auf Basis der bereits
+     gesammelten wave_predictions/wave_snapshots-Historie würde
+     datenbasiert zeigen, welche Einstellung historisch die beste
+     hit_rate/PnL-Kombination lieferte — statt den Default 5%/0.5 nur
+     aus Konvention zu setzen.
+
+ 10) Größere Erweiterung: Konfidenz-Kalibrierung anhand der eigenen
+     Historie. wave_predictions/wave_snapshots sammeln bereits alle
+     nötigen Rohdaten (confidence beim Erkennen vs. tatsächliches Ergebnis
+     hit/invalidated/expired). Eine einfache Kalibrierungskurve
+     (z.B. "Muster mit confidence 0.6-0.7 hatten historisch eine
+     hit_rate von X%") ließe sich ohne ML rein aus SQL/pandas ableiten
+     und würde die aktuell etwas willkürliche 0-1-Konfidenz durch eine
+     empirisch gestützte Zahl ersetzen.
+
+
+7. QUELLEN IM CODE (zum Nachschlagen)
+-----------------------------------------
+  src/analytics/elliott_wave.py
+    _zigzag()            Pivot-Extraktion
+    _fib_closeness()     Fibonacci-Konfidenzmessung
+    _check_impulse()     harte Regeln für 5-Wellen-Impuls
+    _check_corrective()  harte Regeln für ABC-Korrektur
+    _leg_zone()           Einzelne Fibonacci-Zielzonen-Projektion
+    analyze_current_wave() Zustandsmaschine + Zielzonen der laufenden Welle
+    detect_elliott_waves() historische Muster-Suche (für Chart-Overlay)
+
+  src/analytics/wave_tracker.py
+    record_prediction/record_snapshot   Protokollierung
+    evaluate_open_predictions()         hit/invalidated/expired-Auflösung
+    _simulate_stop_loss()/paper_trades() Einstieg + Risikomanagement-Simulation
+    target_overshoot()/overshoot_coverage() Exit-Timing-Analyse
+
+  Dashboard-Tabs mit Reglern: "Kurschart", "Wellen-Scanner", "Signale",
+  "Insider-Papier-Trades" (dashboard/app.py, Suche nach "sensitivity"/
+  "Empfindlichkeit").

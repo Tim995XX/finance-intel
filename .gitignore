@@ -1,0 +1,36 @@
+# ── Sicherheitsrelevant: Secrets & Zugangsdaten ──────────────────────────────
+# .insider_config.json enthält den FMP-API-Key im Klartext (siehe insider_fetcher.py)
+# Achtung: Git kennt keine Kommentare hinter einem Muster in derselben Zeile.
+.insider_config.json
+.env
+.env.*
+*.pem
+*.key
+.streamlit/secrets.toml
+
+# ── Datenbank & lokale Daten ─────────────────────────────────────────────────
+# Enthält gesammelte News/Kurse/Insider-Trades — keine Secrets, aber groß,
+# nutzerspezifisch und nicht sinnvoll versionierbar (Binärformat, wächst laufend).
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/*.log
+data/.cron.lock
+data/backup/
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ── Virtual Environment ──────────────────────────────────────────────────────
+venv/
+.venv/
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

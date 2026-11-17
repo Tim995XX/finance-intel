@@ -1,0 +1,113 @@
+ERGEBNIS v4 (Bärenmarkt-Gewichtung) — Stand 2026-10-02
+============================================================
+
+Frage: Bringt ein doppelter Einsatz (200 € statt 100 €) bei Long-Signalen,
+wenn der S&P 500 unter seiner 200-Tage-Linie liegt, mehr als v3?
+
+Vorab festgelegte Regel (vor Ansicht der Testdaten):
+  1. Edge im Bärenmarkt positiv in der Mehrheit der Bärenphasen
+  2. Ergebnis je eingesetztem Euro v4 > v3
+  -> geprüft auf dem Test-Universum (452 Aktien, nicht auf der Watchlist)
+
+Bärenphasen: S&P 500 < SMA200, Lücken <= 10 Handelstage überbrückt,
+Phasen < 20 Handelstage verworfen. Gewertet nur Phasen mit >= 20
+entschiedenen Signalen.
+
+------------------------------------------------------------
+TEST-UNIVERSUM (entscheidend)
+------------------------------------------------------------
+Signale gesamt: 45.361 (2017-03-22 – 2026-10-02). Replay-Stand 2026-10-02
+
+Versionen (Edge = Trefferquote - Zufalls-Basis; Gewinn bei 100 € je Signal):
+  v1 · Original               Training (bis 2022)  n= 10941  Edge  +0.9 pp  Ø/Signal +0.06 %  je Euro +0.06 %  Gewinn     +511 €
+  v1 · Original               Test (ab 2023)       n=  6636  Edge  +3.0 pp  Ø/Signal +0.32 %  je Euro +0.32 %  Gewinn    +1842 €
+  v1 · Original               Gesamt               n= 17577  Edge  +1.7 pp  Ø/Signal +0.16 %  je Euro +0.16 %  Gewinn    +2352 €
+  v2 · Long-only              Training (bis 2022)  n=  4860  Edge  +4.9 pp  Ø/Signal +0.57 %  je Euro +0.57 %  Gewinn    +2749 €
+  v2 · Long-only              Test (ab 2023)       n=  3122  Edge  +8.1 pp  Ø/Signal +0.95 %  je Euro +0.95 %  Gewinn    +2922 €
+  v2 · Long-only              Gesamt               n=  7982  Edge  +6.1 pp  Ø/Signal +0.72 %  je Euro +0.72 %  Gewinn    +5671 €
+  v3 · Evidenzbasiert         Training (bis 2022)  n= 10284  Edge  +5.4 pp  Ø/Signal +0.65 %  je Euro +0.65 %  Gewinn    +6553 €
+  v3 · Evidenzbasiert         Test (ab 2023)       n=  6582  Edge  +7.8 pp  Ø/Signal +0.92 %  je Euro +0.92 %  Gewinn    +5950 €
+  v3 · Evidenzbasiert         Gesamt               n= 16866  Edge  +6.3 pp  Ø/Signal +0.75 %  je Euro +0.75 %  Gewinn   +12503 €
+  v4 · Bärenmarkt-Gewichtung  Training (bis 2022)  n= 10284  Edge  +5.4 pp  Ø/Signal +0.65 %  je Euro +0.71 %  Gewinn    +9706 €
+  v4 · Bärenmarkt-Gewichtung  Test (ab 2023)       n=  6582  Edge  +7.8 pp  Ø/Signal +0.92 %  je Euro +1.05 %  Gewinn    +7684 €
+  v4 · Bärenmarkt-Gewichtung  Gesamt               n= 16866  Edge  +6.3 pp  Ø/Signal +0.75 %  je Euro +0.83 %  Gewinn   +17390 €
+
+Long-Signale (v3) im Bärenmarkt je Phase:
+  2018-10-11 – 2019-02-11  entschieden   504  Edge +12.7 pp  Ø Ergebnis +1.28 %
+  2020-02-27 – 2020-05-26  entschieden  1162  Edge  +6.7 pp  Ø Ergebnis +1.24 %
+  2022-01-21 – 2023-01-19  entschieden  2051  Edge  +6.0 pp  Ø Ergebnis +0.62 %
+  2025-03-10 – 2025-05-09  entschieden   563  Edge +17.7 pp  Ø Ergebnis +2.12 %
+
+Ergebnis je Euro je Jahr:
+  2017   v3 +1.54 %   v4 +1.54 %
+  2018   v3 +0.01 %   v4 +0.16 %
+  2019   v3 +1.24 %   v4 +1.34 %
+  2020   v3 +0.72 %   v4 +0.87 %
+  2021   v3 +0.53 %   v4 +0.53 %
+  2022   v3 +0.35 %   v4 +0.44 %
+  2023   v3 +0.81 %   v4 +0.93 %
+  2024   v3 +1.22 %   v4 +1.22 %
+  2025   v3 +1.15 %   v4 +1.37 %
+  2026   v3 +0.49 %   v4 +0.58 %
+
+Regel 1: 4/4 Phasen positiv -> erfüllt
+Regel 2: v4 +0.825 % vs v3 +0.754 % je Euro -> erfüllt
+=> BESTANDEN
+
+------------------------------------------------------------
+WATCHLIST (hier wurde der Effekt gefunden — kein unabhängiger Beleg)
+------------------------------------------------------------
+Signale gesamt: 58.364 (2017-03-20 – 2026-10-01). Replay-Stand 2026-10-01
+
+Versionen (Edge = Trefferquote - Zufalls-Basis; Gewinn bei 100 € je Signal):
+  v1 · Original               Training (bis 2022)  n= 13156  Edge  +1.3 pp  Ø/Signal +0.13 %  je Euro +0.13 %  Gewinn    +1426 €
+  v1 · Original               Test (ab 2023)       n=  9905  Edge  +1.8 pp  Ø/Signal +0.23 %  je Euro +0.23 %  Gewinn    +1842 €
+  v1 · Original               Gesamt               n= 23061  Edge  +1.5 pp  Ø/Signal +0.18 %  je Euro +0.18 %  Gewinn    +3269 €
+  v2 · Long-only              Training (bis 2022)  n=  5475  Edge  +5.2 pp  Ø/Signal +0.64 %  je Euro +0.64 %  Gewinn    +3443 €
+  v2 · Long-only              Test (ab 2023)       n=  4165  Edge  +4.4 pp  Ø/Signal +0.61 %  je Euro +0.61 %  Gewinn    +2491 €
+  v2 · Long-only              Gesamt               n=  9640  Edge  +4.9 pp  Ø/Signal +0.62 %  je Euro +0.62 %  Gewinn    +5934 €
+  v3 · Evidenzbasiert         Training (bis 2022)  n= 11568  Edge  +5.4 pp  Ø/Signal +0.65 %  je Euro +0.65 %  Gewinn    +7482 €
+  v3 · Evidenzbasiert         Test (ab 2023)       n=  8612  Edge  +5.1 pp  Ø/Signal +0.67 %  je Euro +0.67 %  Gewinn    +5685 €
+  v3 · Evidenzbasiert         Gesamt               n= 20180  Edge  +5.3 pp  Ø/Signal +0.66 %  je Euro +0.66 %  Gewinn   +13167 €
+  v4 · Bärenmarkt-Gewichtung  Training (bis 2022)  n= 11568  Edge  +5.4 pp  Ø/Signal +0.65 %  je Euro +0.70 %  Gewinn   +10722 €
+  v4 · Bärenmarkt-Gewichtung  Test (ab 2023)       n=  8612  Edge  +5.1 pp  Ø/Signal +0.67 %  je Euro +0.77 %  Gewinn    +7276 €
+  v4 · Bärenmarkt-Gewichtung  Gesamt               n= 20180  Edge  +5.3 pp  Ø/Signal +0.66 %  je Euro +0.73 %  Gewinn   +17998 €
+
+Long-Signale (v3) im Bärenmarkt je Phase:
+  2018-10-11 – 2019-02-11  entschieden   559  Edge +12.5 pp  Ø Ergebnis +1.30 %
+  2020-02-27 – 2020-05-26  entschieden  1113  Edge  +9.5 pp  Ø Ergebnis +1.55 %
+  2022-01-21 – 2023-01-19  entschieden  2279  Edge  +4.0 pp  Ø Ergebnis +0.47 %
+  2025-03-10 – 2025-05-09  entschieden   613  Edge +12.6 pp  Ø Ergebnis +1.50 %
+
+Ergebnis je Euro je Jahr:
+  2017   v3 +1.27 %   v4 +1.27 %
+  2018   v3 +0.27 %   v4 +0.36 %
+  2019   v3 +1.33 %   v4 +1.44 %
+  2020   v3 +0.94 %   v4 +1.10 %
+  2021   v3 +0.54 %   v4 +0.54 %
+  2022   v3 +0.05 %   v4 +0.19 %
+  2023   v3 +0.75 %   v4 +0.92 %
+  2024   v3 +0.96 %   v4 +0.96 %
+  2025   v3 +0.77 %   v4 +0.92 %
+  2026   v3 +0.20 %   v4 +0.25 %
+
+Regel 1: 4/4 Phasen positiv -> erfüllt
+Regel 2: v4 +0.729 % vs v3 +0.661 % je Euro -> erfüllt
+=> BESTANDEN
+
+------------------------------------------------------------
+ENTSCHEIDUNG
+------------------------------------------------------------
+v4 am 2026-10-02 aktiviert (ACTIVE_VERSION in src/analytics/model_versions.py).
+
+Einschränkungen:
+  - nur 4 Bärenphasen seit 2018 (dieselben Zeiträume wie auf der Watchlist —
+    neue Aktien, aber keine neuen Marktphasen). Ein künftiger Bärenmarkt ist
+    die eigentliche Probe: dann Edge/Ergebnis der Bärenmarkt-Signale live prüfen.
+  - Test-Aktien sind heutige Indexmitglieder (Survivorship Bias).
+  - Ergebnis = Abstand bis Zielzone (Treffer) bzw. bis Pivot (invalidiert),
+    ohne Gebühren/Slippage; Papier-Trades mit Stop-Loss können abweichen.
+  - CTVA: Kurse 2026-10-01/02 entfernt (unbereinigte Abspaltung).
+
+Nachrechnen: python main.py replay test  (Kennzahlen + Regel werden ausgegeben)
+Rohdaten der Tabellen: 2026-10-02_v4_versionsvergleich.csv
