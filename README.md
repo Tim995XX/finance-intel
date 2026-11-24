@@ -115,6 +115,10 @@ Täglicher Lauf per Cron, z. B. werktags um 7 Uhr:
 - `ELLIOTT_WELLEN.txt`: wie die Wellenerkennung arbeitet
 - `VERBESSERUNGEN.txt`: umgesetzte und offene Verbesserungen
 
+## Hinweis
+
+Dieses Projekt wurde mithilfe von Claude (Anthropic) erstellt.
+
 ## Lizenz
 
 MIT, siehe [LICENSE](LICENSE).
