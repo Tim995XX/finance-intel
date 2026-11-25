@@ -2,7 +2,6 @@ import feedparser
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 

@@ -153,7 +153,7 @@ def build_intraday_wave_chart(
                 textposition="top center", textfont=dict(size=13, color=cw_color),
                 line=dict(color=cw_color, width=1.5), marker=dict(size=6, color=cw_color),
                 name=f"🌊 Bestätigt: {cw_label}",
-                hovertemplate=f"<b>Welle %{{text}}</b><br>%{{x}} · %{{y:.4f}}<extra></extra>",
+                hovertemplate="<b>Welle %{text}</b><br>%{x} · %{y:.4f}<extra></extra>",
                 showlegend=True, legendgroup="current_wave",
             ))
 

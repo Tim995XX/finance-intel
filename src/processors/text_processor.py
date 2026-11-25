@@ -1,7 +1,6 @@
 import re
 import logging
 import nltk
-from collections import Counter
 from textblob import TextBlob
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer

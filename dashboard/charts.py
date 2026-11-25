@@ -289,7 +289,7 @@ def build_price_chart(
                 marker=dict(size=6, color=cw_color),
                 name=f"🌊 Bestätigt: {cw_label}",
                 hovertemplate=(
-                    f"<b>Welle %{{text}}</b><br>%{{x}} · %{{y:.2f}}<extra></extra>"
+                    "<b>Welle %{text}</b><br>%{x} · %{y:.2f}<extra></extra>"
                 ),
                 showlegend=True,
                 legendgroup="current_wave",

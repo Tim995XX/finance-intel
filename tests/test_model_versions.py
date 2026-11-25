@@ -2,8 +2,8 @@ import pandas as pd
 import pytest
 
 from src.analytics.model_versions import (
-    VERSIONS, accept_mask, accepts, signal_metrics, compare_versions, yearly_edge,
-    stake_factor, stake_weights, market_bear, bear_phases, phase_table, v4_decision,
+    VERSIONS, accepts, signal_metrics, compare_versions, yearly_edge,
+    stake_factor, stake_weights, bear_phases, v4_decision,
 )
 from src.analytics.signal_features import compute_features
 

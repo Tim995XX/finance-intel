@@ -153,7 +153,7 @@ def replace_history(conn: sqlite3.Connection, ticker: str, full: pd.DataFrame) -
         f = _factor_at(ratio, created)
         if abs(f - 1) > 1e-6:
             conn.execute(
-                f"UPDATE wave_predictions SET "
+                "UPDATE wave_predictions SET "
                 + ", ".join(f"{c} = {c} * ?" for c in _PRED_PRICE_COLS)
                 + " WHERE id=?",
                 (*([f] * len(_PRED_PRICE_COLS)), pid),
@@ -172,7 +172,7 @@ def replace_history(conn: sqlite3.Connection, ticker: str, full: pd.DataFrame) -
         f = _factor_at(ratio, snap_date)
         if abs(f - 1) > 1e-6:
             conn.execute(
-                f"UPDATE wave_snapshots SET "
+                "UPDATE wave_snapshots SET "
                 + ", ".join(f"{c} = {c} * ?" for c in _SNAP_PRICE_COLS)
                 + " WHERE id=?",
                 (*([f] * len(_SNAP_PRICE_COLS)), sid),
