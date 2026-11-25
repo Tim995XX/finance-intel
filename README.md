@@ -1,5 +1,7 @@
 # Finance Intelligence: Marktdaten-Pipeline mit Analyse-Dashboard
 
+[![CI](https://github.com/Tim995XX/finance-intel/actions/workflows/ci.yml/badge.svg)](https://github.com/Tim995XX/finance-intel/actions/workflows/ci.yml)
+
 Ein Werkzeug, das täglich Kurse, Wirtschaftsnachrichten und veröffentlichte Insider-Meldungen
 aus mehreren öffentlichen Quellen sammelt, in einer SQLite-Datenbank zusammenführt und in einem
 Streamlit-Dashboard auswertbar macht. Darauf aufbauend prüft es, ob regelbasierte Chartsignale
